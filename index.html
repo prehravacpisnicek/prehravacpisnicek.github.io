@@ -2,120 +2,130 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Přehrávač písniček</title>
+    <title>přehravač písniček</title>
     <style>
         :root { --primary: #00d2ff; --bg: #0b0e14; --card: #151921; --text: #e0e0e0; }
-        body { font-family: 'Calibri', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; }
-        .main-card { background: var(--card); padding: 25px; border-radius: 15px; width: 100%; max-width: 700px; border: 1px solid #2d343f; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         
-        .section { background: #1c232d; padding: 20px; border-radius: 12px; border: 1px solid #333; margin-bottom: 20px; }
+        /* Hlavní karta pro veřejnost */
+        .public-card { background: var(--card); padding: 30px; border-radius: 20px; width: 400px; border: 1px solid #2d343f; box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center; }
         input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #2d343f; background: #0b0e14; color: white; box-sizing: border-box; }
-        
-        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; }
+        .btn { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; margin-top: 10px; }
         .btn-add { background: var(--primary); color: #0b0e14; font-size: 16px; }
-        .btn-login { background: #34495e; color: white; margin-top: 10px; }
-        .btn-allow { background: #2ecc71; color: white; width: auto; }
-        .btn-deny { background: #e74c3c; color: white; width: auto; }
+        .btn-login-trigger { background: transparent; color: #555; border: 1px solid #333; margin-top: 30px; font-size: 12px; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #2d343f; }
+        /* MODÁLNÍ OKNO (ADMINISTRACE) */
+        .modal-overlay { 
+            display: none; /* Skryté v základu */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0, 0, 0, 0.9); z-index: 1000; 
+            justify-content: center; align-items: center; 
+        }
+        .admin-window { 
+            background: var(--card); width: 90%; max-width: 800px; max-height: 90vh; 
+            border-radius: 20px; border: 1px solid var(--primary); 
+            padding: 30px; position: relative; overflow-y: auto; 
+        }
+        .close-admin { position: absolute; top: 20px; right: 20px; color: #888; cursor: pointer; font-size: 24px; }
         
-        #adminPanel { display: none; margin-top: 20px; border-top: 2px dashed var(--primary); padding-top: 20px; }
-        #player-zone { margin-top: 20px; text-align: center; }
-        .status-msg { color: var(--primary); text-align: center; font-weight: bold; margin: 10px 0; display: none; }
+        /* Tabulka a Přehrávač v okně */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #2d343f; }
+        .btn-action { width: auto; padding: 6px 12px; margin: 2px; }
+        .btn-allow { background: #2ecc71; color: white; }
+        .btn-deny { background: #e74c3c; color: white; }
+        #player-zone { margin-top: 20px; padding: 20px; background: #0b0e14; border-radius: 10px; }
+
+        .status-msg { color: var(--primary); font-size: 14px; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
-<div class="main-card">
-    <h2>Playlist</h2>
-    
-    <div class="section">
-        <h4>Píseň:</h4>
+    <div class="public-card">
+        <h2 style="color:var(--primary)">🎵 Navrhnout píseň</h2>
+        <p style="color:#777; font-size: 14px;">Vaše skladba se zařadí do fronty ke schválení.</p>
+        
         <input type="text" id="newName" placeholder="Název skladby">
         <input type="text" id="newUrl" placeholder="URL odkaz (YouTube / MP3)">
-        <button class="btn btn-add" onclick="publicAdd()">Odeslat</button>
-        <div id="statusMsg" class="status-msg">Píseň byla odeslána do fronty!</div>
+        <button class="btn btn-add" onclick="publicAdd()">ODESLAT</button>
+        <div id="statusMsg" class="status-msg">Odesláno do fronty!</div>
+
+        <button class="btn btn-login-trigger" onclick="showLoginPrompt()">VSTUP PRO ADMINISTRÁTORA</button>
     </div>
 
-    <div id="loginArea" class="section">
-        <h4>Administrace
-        <input type="text" id="user" placeholder="Uživatelské jméno">
-        <input type="password" id="pass" placeholder="Heslo">
-        <button class="btn btn-login" onclick="login()">PŘIHLÁSIT SE</button>
-    </div>
+    <div id="adminModal" class="modal-overlay">
+        <div class="admin-window">
+            <span class="close-admin" onclick="closeAdmin()">&times;</span>
+            <h2 style="color:var(--primary); margin-top: 0;">🛠️ Administrace: Ing. Kudělka</h2>
+            
+            <div id="queueSection">
+                <h3>📋 Fronta ke schválení</h3>
+                <table>
+                    <thead>
+                        <tr><th>Název</th><th>Akce</th></tr>
+                    </thead>
+                    <tbody id="queueTable">
+                        </tbody>
+                </table>
+            </div>
 
-    <div id="adminPanel">
-        <h3 style="color:var(--primary)">🛠️ Kontrolní konzole</h3>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Název</th>
-                    <th>Akce</th>
-                </tr>
-            </thead>
-            <tbody id="queueTable"></tbody>
-        </table>
-
-        <div id="player-zone">
-            <p style="color: #555;">Žádná píseň není aktivní.</p>
+            <div id="player-zone">
+                <p style="color: #444;">Přehrávač je připraven.</p>
+            </div>
         </div>
     </div>
-</div>
 
 <script>
-    const AUTH = { user: "Tomas", pass: "Tomas2901" };
+    const AUTH = { user: "Tomas", pass: "admin123" };
     let queue = [];
 
-    // Veřejná funkce pro přidání bez přihlášení
+    // Funkce pro přidání písně kýmkoliv
     function publicAdd() {
         const name = document.getElementById('newName').value.trim();
         const url = document.getElementById('newUrl').value.trim();
-        
-        if (!name || !url) {
-            alert("Vyplňte název i odkaz!");
-            return;
-        }
+        if (!name || !url) return alert("Vyplňte údaje!");
 
         queue.push({ id: Date.now(), name, url });
         
-        // Vymazání polí a potvrzení
         document.getElementById('newName').value = "";
         document.getElementById('newUrl').value = "";
         const msg = document.getElementById('statusMsg');
         msg.style.display = "block";
         setTimeout(() => msg.style.display = "none", 3000);
+        
+        renderQueue();
+    }
 
-        // Pokud je admin přihlášen, hned aktualizuj tabulku
-        if (document.getElementById('adminPanel').style.display === "block") {
+    // Vyvolání přihlášení a otevření okna
+    function showLoginPrompt() {
+        const u = prompt("Uživatelské jméno:");
+        const p = prompt("Heslo:");
+        
+        if (u === AUTH.user && p === AUTH.pass) {
+            document.getElementById('adminModal').style.display = "flex";
             renderQueue();
+        } else {
+            alert("Neoprávněný přístup!");
         }
     }
 
-    // Přihlášení
-    function login() {
-        const u = document.getElementById('user').value;
-        const p = document.getElementById('pass').value;
-        if (u === AUTH.user && p === AUTH.pass) {
-            document.getElementById('loginArea').style.display = "none";
-            document.getElementById('adminPanel').style.display = "block";
-            renderQueue();
-        } else {
-            alert("Neautorizovaný přístup!");
-        }
+    function closeAdmin() {
+        document.getElementById('adminModal').style.display = "none";
     }
 
     function renderQueue() {
         const table = document.getElementById('queueTable');
         table.innerHTML = "";
+        if (queue.length === 0) {
+            table.innerHTML = "<tr><td colspan='2' style='text-align:center; color:#555;'>Žádné nové návrhy</td></tr>";
+        }
         queue.forEach(item => {
             table.innerHTML += `
                 <tr>
                     <td>${item.name}</td>
                     <td>
-                        <button class="btn btn-allow" onclick="approve(${item.id})">Povolit</button>
-                        <button class="btn btn-deny" onclick="remove(${item.id})">Smazat</button>
+                        <button class="btn btn-action btn-allow" onclick="approve(${item.id})">Povolit</button>
+                        <button class="btn btn-action btn-deny" onclick="remove(${item.id})">Smazat</button>
                     </td>
                 </tr>`;
         });
@@ -125,11 +135,11 @@
         const item = queue.find(x => x.id === id);
         if (item) {
             const zone = document.getElementById('player-zone');
-            let html = `<h4 style="color:var(--primary)">▶️ Hraje: ${item.name}</h4>`;
+            let html = `<h4 style="color:var(--primary)">▶️ PRÁVĚ HRAJE: ${item.name}</h4>`;
             
             if (item.url.includes("youtube.com") || item.url.includes("youtu.be")) {
                 let vid = item.url.includes("v=") ? item.url.split("v=")[1].split("&")[0] : item.url.split("/").pop();
-                html += `<iframe width="100%" height="300" src="https://www.youtube.com/embed/${vid}?autoplay=1" frameborder="0" allow="autoplay" allowfullscreen></iframe>`;
+                html += `<iframe width="100%" height="350" src="https://www.youtube.com/embed/${vid}?autoplay=1" frameborder="0" allow="autoplay" allowfullscreen></iframe>`;
             } else {
                 html += `<audio controls autoplay src="${item.url}" style="width:100%"></audio>`;
             }
