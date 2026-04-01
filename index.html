@@ -2,280 +2,126 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Přehrávač Písniček</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/toxicity"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <title>Přehravač písniček</title>
     <style>
-        :root { --accent: #00d2ff; --bg: #050505; --card: #111111; --text: #e0e0e0; --panel: #1a1a1a; }
+        :root { --primary: #00d2ff; --bg: #0b0e14; --card: #151921; --text: #e0e0e0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; }
+        .main-card { background: var(--card); padding: 25px; border-radius: 15px; width: 100%; max-width: 700px; border: 1px solid #2d343f; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .admin-box { display: none; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #2d343f; background: #0b0e14; color: white; box-sizing: border-box; }
         
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background: var(--bg); 
-            color: var(--text); 
-            display: flex; 
-            justify-content: center; 
-            padding: 20px; 
-            margin: 0; 
-        }
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-allow { background: #2ecc71; color: white; }
+        .btn-deny { background: #e74c3c; color: white; }
+        .btn-add { background: var(--primary); color: #0b0e14; width: 100%; margin-top: 10px; font-size: 16px; }
 
-        .main-container { 
-            background: var(--card); 
-            padding: 30px; 
-            border-radius: 12px; 
-            width: 100%; 
-            max-width: 800px; 
-            border: 1px solid #222; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8); 
-        }
-
-        h2 { color: var(--accent); text-align: center; font-weight: 300; letter-spacing: 2px; }
-
-        /* Veřejná sekce vkládání */
-        .public-input-section { 
-            background: var(--panel); 
-            padding: 20px; 
-            border-radius: 8px; 
-            margin-bottom: 25px; 
-            border: 1px solid #333;
-        }
-
-        input { 
-            width: 100%; 
-            padding: 12px; 
-            margin: 8px 0; 
-            border-radius: 6px; 
-            border: 1px solid #333; 
-            background: #000; 
-            color: #fff; 
-            box-sizing: border-box; 
-        }
-
-        .btn { 
-            padding: 12px 20px; 
-            border: none; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            transition: 0.3s; 
-        }
-
-        .btn-blue { background: var(--accent); color: #000; width: 100%; margin-top: 10px; }
-        .btn-blue:hover { opacity: 0.8; }
-
-        .btn-admin-access { 
-            background: transparent; 
-            color: var(--accent); 
-            border: 1px solid var(--accent); 
-            margin-top: 20px; 
-            font-size: 12px;
-        }
-
-        /* Skrytá Admin sekce */
-        #adminArea { display: none; margin-top: 20px; border-top: 1px solid #333; padding-top: 20px; }
-
-        .flex-row { display: flex; gap: 15px; margin-top: 15px; }
-        .col { flex: 1; background: #0a0a0a; padding: 15px; border-radius: 8px; border: 1px solid #222; min-height: 150px; }
-
-        .song-item { 
-            background: #151515; 
-            padding: 10px; 
-            margin-bottom: 6px; 
-            border-radius: 4px; 
-            font-size: 13px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-left: 3px solid var(--accent);
-        }
-
-        .badge { font-size: 9px; padding: 2px 5px; border-radius: 3px; background: #333; color: var(--accent); }
-
-        /* Přehrávač */
-        #player-zone { margin-top: 30px; text-align: center; }
-        #nowPlayingLabel { color: var(--accent); margin-bottom: 15px; font-size: 14px; letter-spacing: 1px; }
-
-        /* Login Modal */
-        #loginOverlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            justify-content: center; align-items: center;
-            z-index: 1000;
-        }
-        .login-card { background: var(--panel); padding: 30px; border-radius: 10px; width: 300px; border: 1px solid var(--accent); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1c232d; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #2d343f; }
+        th { background: #252d38; color: var(--primary); }
+        
+        #player-zone { margin-top: 30px; border-top: 2px solid var(--primary); padding-top: 20px; text-align: center; }
+        .now-playing { color: var(--primary); font-weight: bold; margin-bottom: 10px; font-size: 1.2em; }
     </style>
 </head>
 <body>
 
-<div class="main-container">
-    <h2>Přehrávač písniček</h2>
-    
-    <div class="public-input-section">
-        <input type="text" id="newName" placeholder="Název skladby">
-        <input type="text" id="newUrl" placeholder="URL (YouTube Music / YouTube)">
-        <button class="btn btn-blue" onclick="processInput()">Odeslat</button>
+<div class="main-card">
+    <h2 id="title">🔐 Správa přehrávání</h2>
+
+    <div id="loginArea">
+        <input type="text" id="user" placeholder="Uživatelské jméno">
+        <input type="password" id="pass" placeholder="Heslo">
+        <button class="btn btn-add" onclick="login()">PŘIHLÁSIT SE</button>
     </div>
 
-    <div style="text-align: right;">
-        <button class="btn btn-admin-access" onclick="openLogin()">ADMINISTRACE</button>
-    </div>
-
-    <div id="adminArea">
-        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <span style="font-size: 13px;">AI Guard: <input type="checkbox" id="aiToggle" checked></span>
-            <button class="btn" style="background:#444; color:white; font-size:11px;" onclick="skipSong()">⏭️ PŘESKOČIT</button>
+    <div id="adminArea" class="admin-box">
+        <div style="background: #1c232d; padding: 20px; border-radius: 12px; border: 1px solid #333;">
+            <h4>Vložit novou skladbu do fronty:</h4>
+            <input type="text" id="newName" placeholder="Název skladby">
+            <input type="text" id="newUrl" placeholder="URL odkaz (YouTube / MP3)">
+            <button class="btn btn-add" onclick="addToQueue()">PŘIDAT KE SCHVÁLENÍ</button>
         </div>
 
-        <div class="flex-row">
-            <div class="col">
-                <h4 style="margin-top:0; color:#888;">K revizi</h4>
-                <div id="reviewList"></div>
-            </div>
-            <div class="col">
-                <h4 style="margin-top:0; color:#888;">Playlist</h4>
-                <div id="playlistList"></div>
-            </div>
-        </div>
+        <h3>📋 Čekající fronta</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Skladba</th>
+                    <th>Akce</th>
+                </tr>
+            </thead>
+            <tbody id="queueTable"></tbody>
+        </table>
     </div>
 
     <div id="player-zone">
-        <div id="mediaContainer"></div>
-    </div>
-</div>
-
-<div id="loginOverlay">
-    <div class="login-card">
-        <h3 style="text-align:center; color:var(--accent);">PŘIHLÁŠENÍ</h3>
-        <input type="text" id="user" placeholder="Jméno">
-        <input type="password" id="pass" placeholder="Heslo">
-        <button class="btn btn-blue" onclick="attemptLogin()">VSTOUPIT</button>
-        <button class="btn" style="background:transparent; color:#555; width:100%;" onclick="closeLogin()">Zavřít</button>
+        <p style="color: #555;">Přehrávač zastaven. Čekám na pověření.</p>
     </div>
 </div>
 
 <script>
-    let aiModel;
-    let ytPlayer;
     const AUTH = { user: "Tomas", pass: "Tomas2901" };
-    let reviewQueue = [];
-    let playlist = [];
-    let isPlaying = false;
+    let queue = [];
 
-    async function initAI() {
-        try { aiModel = await toxicity.load(0.8); console.log("AI Ready"); } catch(e) {}
-    }
-
-    // Login Funkce
-    function openLogin() { document.getElementById('loginOverlay').style.display = 'flex'; }
-    function closeLogin() { document.getElementById('loginOverlay').style.display = 'none'; }
-    
-    function attemptLogin() {
+    function login() {
         const u = document.getElementById('user').value;
         const p = document.getElementById('pass').value;
         if (u === AUTH.user && p === AUTH.pass) {
-            document.getElementById('adminArea').style.display = 'block';
-            closeLogin();
-        } else { alert("Neplatné údaje."); }
+            document.getElementById('loginArea').style.display = "none";
+            document.getElementById('adminArea').style.display = "block";
+            document.getElementById('title').innerText = "🛠️ Terminál: Ing. Kudělka";
+        } else { alert("Přístup odepřen."); }
     }
 
-    // Hlavní logika
-    async function processInput() {
+    function addToQueue() {
         const name = document.getElementById('newName').value.trim();
         const url = document.getElementById('newUrl').value.trim();
-        const aiOn = document.getElementById('aiToggle').checked;
-
+        
         if (!name || !url) return;
 
-        let toxic = false;
-        if (aiOn && aiModel) {
-            const pred = await aiModel.classify([name]);
-            toxic = pred.some(p => p.results[0].match);
-        }
-
-        const song = { id: Date.now(), name, url };
-
-        if (aiOn && !toxic) {
-            addToPlaylist(song);
-        } else {
-            song.toxic = toxic;
-            reviewQueue.push(song);
-            renderReview();
-        }
-        document.getElementById('newName').value = ""; document.getElementById('newUrl').value = "";
-        alert("Skladba byla odeslána do systému.");
+        queue.push({ id: Date.now(), name, url });
+        renderQueue();
+        
+        document.getElementById('newName').value = "";
+        document.getElementById('newUrl').value = "";
     }
 
-    function addToPlaylist(song) {
-        playlist.push(song);
-        renderPlaylist();
-        if (!isPlaying) playNext();
-    }
-
-    function renderReview() {
-        const div = document.getElementById('reviewList');
-        div.innerHTML = "";
-        reviewQueue.forEach(s => {
-            div.innerHTML += `<div class="song-item">
-                <span>${s.name} <span class="badge">${s.toxic?'AI':'MAN'}</span></span>
-                <button class="btn" style="background:var(--accent); color:#000; padding:4px 8px; font-size:10px;" onclick="approve(${s.id})">OK</button>
-            </div>`;
-        });
-    }
-
-    function renderPlaylist() {
-        const div = document.getElementById('playlistList');
-        div.innerHTML = "";
-        playlist.forEach(s => {
-            div.innerHTML += `<div class="song-item">${s.name}</div>`;
+    function renderQueue() {
+        const table = document.getElementById('queueTable');
+        table.innerHTML = "";
+        queue.forEach(item => {
+            table.innerHTML += `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>
+                        <button class="btn btn-allow" onclick="approve(${item.id})">Povolit</button>
+                        <button class="btn btn-deny" onclick="remove(${item.id})">Smazat</button>
+                    </td>
+                </tr>`;
         });
     }
 
     function approve(id) {
-        const s = reviewQueue.find(x => x.id === id);
-        reviewQueue = reviewQueue.filter(x => x.id !== id);
-        renderReview();
-        addToPlaylist(s);
-    }
-
-    function playNext() {
-        if (playlist.length === 0) {
-            isPlaying = false;
-            document.getElementById('nowPlayingLabel').innerText = "KONEC PLAYLISTU";
-            document.getElementById('mediaContainer').innerHTML = "";
-            return;
+        const item = queue.find(x => x.id === id);
+        if (item) {
+            const zone = document.getElementById('player-zone');
+            let playerHtml = `<div class="now-playing">▶️ PRÁVĚ HRAJE: ${item.name}</div>`;
+            
+            if (item.url.includes("youtube.com") || item.url.includes("youtu.be")) {
+                let vid = item.url.includes("v=") ? item.url.split("v=")[1].split("&")[0] : item.url.split("/").pop();
+                playerHtml += `<iframe width="100%" height="350" src="https://www.youtube.com/embed/${vid}?autoplay=1" frameborder="0" allow="autoplay" allowfullscreen></iframe>`;
+            } else {
+                playerHtml += `<audio controls autoplay src="${item.url}" style="width:100%"></audio>`;
+            }
+            zone.innerHTML = playerHtml;
         }
-
-        isPlaying = true;
-        const currentSong = playlist.shift();
-        renderPlaylist();
-        document.getElementById('nowPlayingLabel').innerText = "▶️ " + currentSong.name.toUpperCase();
-        
-        const container = document.getElementById('mediaContainer');
-        container.innerHTML = `<div id="yt-placeholder"></div>`;
-
-        let videoId = "";
-        if (currentSong.url.includes("v=")) {
-            videoId = currentSong.url.split("v=")[1].split("&")[0];
-        } else if (currentSong.url.includes("youtu.be/")) {
-            videoId = currentSong.url.split("youtu.be/")[1].split("?")[0];
-        }
-
-        if (videoId) {
-            ytPlayer = new YT.Player('yt-placeholder', {
-                height: '350', width: '100%', videoId: videoId,
-                playerVars: { 'autoplay': 1, 'origin': window.location.origin },
-                events: { 'onStateChange': (e) => { if(e.data === YT.PlayerState.ENDED) playNext(); } }
-            });
-        } else { setTimeout(playNext, 2000); }
+        remove(id);
     }
 
-    function skipSong() {
-        if (ytPlayer && ytPlayer.stopVideo) { ytPlayer.stopVideo(); playNext(); }
+    function remove(id) {
+        queue = queue.filter(x => x.id !== id);
+        renderQueue();
     }
-
-    initAI();
 </script>
 </body>
 </html>
