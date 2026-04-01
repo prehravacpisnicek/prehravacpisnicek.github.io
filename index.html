@@ -5,7 +5,7 @@
     <title>Přehrávač písniček</title>
     <style>
         :root { --primary: #00d2ff; --bg: #0b0e14; --card: #151921; --text: #e0e0e0; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; }
+        body { font-family: 'Calibri', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; }
         .main-card { background: var(--card); padding: 25px; border-radius: 15px; width: 100%; max-width: 700px; border: 1px solid #2d343f; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
         .section { background: #1c232d; padding: 20px; border-radius: 12px; border: 1px solid #333; margin-bottom: 20px; }
@@ -31,10 +31,10 @@
     <h2>Playlist</h2>
     
     <div class="section">
-        <h4>Navrhnout píseň:</h4>
+        <h4>Píseň:</h4>
         <input type="text" id="newName" placeholder="Název skladby">
         <input type="text" id="newUrl" placeholder="URL odkaz (YouTube / MP3)">
-        <button class="btn btn-add" onclick="publicAdd()">ODESLAT KE SCHVÁLENÍ</button>
+        <button class="btn btn-add" onclick="publicAdd()">Odeslat</button>
         <div id="statusMsg" class="status-msg">Píseň byla odeslána do fronty!</div>
     </div>
 
