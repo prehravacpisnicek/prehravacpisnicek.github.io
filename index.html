@@ -2,60 +2,65 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Přehravač písniček</title>
+    <title>Přehrávač písniček</title>
     <style>
         :root { --primary: #00d2ff; --bg: #0b0e14; --card: #151921; --text: #e0e0e0; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; }
         .main-card { background: var(--card); padding: 25px; border-radius: 15px; width: 100%; max-width: 700px; border: 1px solid #2d343f; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .admin-box { display: none; }
+        
+        .section { background: #1c232d; padding: 20px; border-radius: 12px; border: 1px solid #333; margin-bottom: 20px; }
         input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #2d343f; background: #0b0e14; color: white; box-sizing: border-box; }
         
-        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-allow { background: #2ecc71; color: white; }
-        .btn-deny { background: #e74c3c; color: white; }
-        .btn-add { background: var(--primary); color: #0b0e14; width: 100%; margin-top: 10px; font-size: 16px; }
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; }
+        .btn-add { background: var(--primary); color: #0b0e14; font-size: 16px; }
+        .btn-login { background: #34495e; color: white; margin-top: 10px; }
+        .btn-allow { background: #2ecc71; color: white; width: auto; }
+        .btn-deny { background: #e74c3c; color: white; width: auto; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1c232d; border-radius: 10px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #2d343f; }
-        th { background: #252d38; color: var(--primary); }
         
-        #player-zone { margin-top: 30px; border-top: 2px solid var(--primary); padding-top: 20px; text-align: center; }
-        .now-playing { color: var(--primary); font-weight: bold; margin-bottom: 10px; font-size: 1.2em; }
+        #adminPanel { display: none; margin-top: 20px; border-top: 2px dashed var(--primary); padding-top: 20px; }
+        #player-zone { margin-top: 20px; text-align: center; }
+        .status-msg { color: var(--primary); text-align: center; font-weight: bold; margin: 10px 0; display: none; }
     </style>
 </head>
 <body>
 
 <div class="main-card">
-    <h2 id="title">🔐 Správa přehrávání</h2>
-
-    <div id="loginArea">
-        <input type="text" id="user" placeholder="Uživatelské jméno">
-        <input type="password" id="pass" placeholder="Heslo">
-        <button class="btn btn-add" onclick="login()">PŘIHLÁSIT SE</button>
+    <h2>Playlist</h2>
+    
+    <div class="section">
+        <h4>Navrhnout píseň:</h4>
+        <input type="text" id="newName" placeholder="Název skladby">
+        <input type="text" id="newUrl" placeholder="URL odkaz (YouTube / MP3)">
+        <button class="btn btn-add" onclick="publicAdd()">ODESLAT KE SCHVÁLENÍ</button>
+        <div id="statusMsg" class="status-msg">Píseň byla odeslána do fronty!</div>
     </div>
 
-    <div id="adminArea" class="admin-box">
-        <div style="background: #1c232d; padding: 20px; border-radius: 12px; border: 1px solid #333;">
-            <h4>Vložit novou skladbu do fronty:</h4>
-            <input type="text" id="newName" placeholder="Název skladby">
-            <input type="text" id="newUrl" placeholder="URL odkaz (YouTube / MP3)">
-            <button class="btn btn-add" onclick="addToQueue()">PŘIDAT KE SCHVÁLENÍ</button>
-        </div>
+    <div id="loginArea" class="section">
+        <h4>Administrace/h4>
+        <input type="text" id="user" placeholder="Uživatelské jméno">
+        <input type="password" id="pass" placeholder="Heslo">
+        <button class="btn btn-login" onclick="login()">PŘIHLÁSIT SE</button>
+    </div>
 
-        <h3>📋 Čekající fronta</h3>
+    <div id="adminPanel">
+        <h3 style="color:var(--primary)">🛠️ Kontrolní konzole</h3>
+        
         <table>
             <thead>
                 <tr>
-                    <th>Skladba</th>
+                    <th>Název</th>
                     <th>Akce</th>
                 </tr>
             </thead>
             <tbody id="queueTable"></tbody>
         </table>
-    </div>
 
-    <div id="player-zone">
-        <p style="color: #555;">Přehrávač zastaven. Čekám na pověření.</p>
+        <div id="player-zone">
+            <p style="color: #555;">Žádná píseň není aktivní.</p>
+        </div>
     </div>
 </div>
 
@@ -63,27 +68,42 @@
     const AUTH = { user: "Tomas", pass: "Tomas2901" };
     let queue = [];
 
+    // Veřejná funkce pro přidání bez přihlášení
+    function publicAdd() {
+        const name = document.getElementById('newName').value.trim();
+        const url = document.getElementById('newUrl').value.trim();
+        
+        if (!name || !url) {
+            alert("Vyplňte název i odkaz!");
+            return;
+        }
+
+        queue.push({ id: Date.now(), name, url });
+        
+        // Vymazání polí a potvrzení
+        document.getElementById('newName').value = "";
+        document.getElementById('newUrl').value = "";
+        const msg = document.getElementById('statusMsg');
+        msg.style.display = "block";
+        setTimeout(() => msg.style.display = "none", 3000);
+
+        // Pokud je admin přihlášen, hned aktualizuj tabulku
+        if (document.getElementById('adminPanel').style.display === "block") {
+            renderQueue();
+        }
+    }
+
+    // Přihlášení
     function login() {
         const u = document.getElementById('user').value;
         const p = document.getElementById('pass').value;
         if (u === AUTH.user && p === AUTH.pass) {
             document.getElementById('loginArea').style.display = "none";
-            document.getElementById('adminArea').style.display = "block";
-            document.getElementById('title').innerText = "🛠️ Terminál: Ing. Kudělka";
-        } else { alert("Přístup odepřen."); }
-    }
-
-    function addToQueue() {
-        const name = document.getElementById('newName').value.trim();
-        const url = document.getElementById('newUrl').value.trim();
-        
-        if (!name || !url) return;
-
-        queue.push({ id: Date.now(), name, url });
-        renderQueue();
-        
-        document.getElementById('newName').value = "";
-        document.getElementById('newUrl').value = "";
+            document.getElementById('adminPanel').style.display = "block";
+            renderQueue();
+        } else {
+            alert("Neautorizovaný přístup!");
+        }
     }
 
     function renderQueue() {
@@ -105,15 +125,15 @@
         const item = queue.find(x => x.id === id);
         if (item) {
             const zone = document.getElementById('player-zone');
-            let playerHtml = `<div class="now-playing">▶️ PRÁVĚ HRAJE: ${item.name}</div>`;
+            let html = `<h4 style="color:var(--primary)">▶️ Hraje: ${item.name}</h4>`;
             
             if (item.url.includes("youtube.com") || item.url.includes("youtu.be")) {
                 let vid = item.url.includes("v=") ? item.url.split("v=")[1].split("&")[0] : item.url.split("/").pop();
-                playerHtml += `<iframe width="100%" height="350" src="https://www.youtube.com/embed/${vid}?autoplay=1" frameborder="0" allow="autoplay" allowfullscreen></iframe>`;
+                html += `<iframe width="100%" height="300" src="https://www.youtube.com/embed/${vid}?autoplay=1" frameborder="0" allow="autoplay" allowfullscreen></iframe>`;
             } else {
-                playerHtml += `<audio controls autoplay src="${item.url}" style="width:100%"></audio>`;
+                html += `<audio controls autoplay src="${item.url}" style="width:100%"></audio>`;
             }
-            zone.innerHTML = playerHtml;
+            zone.innerHTML = html;
         }
         remove(id);
     }
